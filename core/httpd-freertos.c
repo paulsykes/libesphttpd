@@ -151,7 +151,11 @@ static SSL_CTX* sslCreateContext()
 
     ESP_LOGI(TAG, "SSL server context create ......");
 
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     ctx = SSL_CTX_new(TLS_server_method());
+#else
+    ctx = SSL_CTX_new(SSLv23_server_method());
+#endif
     if (!ctx) {
         ESP_LOGE(TAG, "SSL_CXT_new");
         goto failed1;
@@ -275,6 +279,9 @@ static PLAT_RETURN platHttpServerTask(void *pvParameters)
 
     if(pInstance->httpdFlags & HTTPD_FLAG_SSL)
     {
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+        SSL_library_init();
+#endif
         pInstance->ctx = sslCreateContext();
         if(!pInstance->ctx)
         {
@@ -488,7 +495,11 @@ static PLAT_RETURN platHttpServerTask(void *pvParameters)
                         do {
                             ret = SSL_read(pRconn->ssl, &pInstance->precvbuf, RECV_BUF_SIZE - 1);
 
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
                             bytesStillAvailable = SSL_has_pending(pRconn->ssl);
+#else
+                            bytesStillAvailable = SSL_pending(pRconn->ssl);
+#endif
 
                             if(ret <= 0)
                             {
