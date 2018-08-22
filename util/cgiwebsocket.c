@@ -146,6 +146,22 @@ int ICACHE_FLASH_ATTR cgiWebsockBroadcast(HttpdInstance *pInstance, const char *
 	return ret;
 }
 
+//Broadcast data to all websockets except one at a specific url. Returns the amount of connections sent to.
+int ICACHE_FLASH_ATTR cgiWebsockBroadcastExcept(HttpdInstance *pInstance, Websock *ws, const char *resource, char *data, int len, int flags) {
+	Websock *lw=llStart;
+	int ret=0;
+	while (lw!=NULL) {
+		if ((strcmp(lw->conn->url, resource)==0) && (lw != ws)) {
+			httpdConnSendStart(pInstance, lw->conn);
+			cgiWebsocketSend(pInstance, lw, data, len, flags);
+			httpdConnSendFinish(pInstance, lw->conn);
+			ret++;
+		}
+		lw=lw->priv->next;
+	}
+	return ret;
+}
+
 
 void ICACHE_FLASH_ATTR cgiWebsocketClose(HttpdInstance *pInstance, Websock *ws, int reason) {
 	char rs[2]={reason>>8, reason&0xff};
